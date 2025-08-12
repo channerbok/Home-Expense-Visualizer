@@ -4,6 +4,7 @@ import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recha
 
 interface CleanedExpense {
   postingdate: Date;
+  indicator:string;
   category: string;
   reference: string;
   amount: number;
@@ -31,13 +32,14 @@ function getTopCategories(categoryTotals: Record<string,number>, topN = 10){
 
     return result;
 }
+
 export default function ExpenseVisualizer({ data }: Props) {
   const categoryTotals = data.reduce<Record<string, number>>((acc, expense) => {
     acc[expense.category] = (acc[expense.category] || 0) + expense.amount;
     return acc;
   }, {});
 
-  const topCategoryTotals = getTopCategories(categoryTotals, 8);
+  const topCategoryTotals = getTopCategories(categoryTotals, 6);
   const chartData = Object.entries(topCategoryTotals).map(([name, value]) => ({
     name,
     value: Math.round(value*100)/100,

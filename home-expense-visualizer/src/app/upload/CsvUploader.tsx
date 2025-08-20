@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import Papa, { ParseResult } from "papaparse";
 import ExpenseVisualizer from "./ExpenseVisualizer";
+import { categoryRules } from "../rules";
 
 interface ExpenseRow {
   "Posting Date": string;
@@ -19,9 +20,27 @@ interface CleanedExpense {
   amount: number;
 }
 
+function applyRules(description: string): string | null{
+  
+  if (description == null)
+    return null;
+
+  const desc = description.toLowerCase();
+
+  for (const keyword in categoryRules){
+    if(desc.includes(keyword)){
+      return categoryRules[keyword];
+    }
+  }
+  
+  return null; 
+}
+
+
 export default function CsvUploader() {
   const [parsedData, setParsedData] = useState<CleanedExpense[]>([]);
   const [selectedMonth, setSelectedMonth] = useState<string>("All");
+  const [selectedYear, setSelectedYear] = useState<string>("All");
 
   function HandleFile(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -36,15 +55,18 @@ export default function CsvUploader() {
             const category = row.Category?.trim().toLowerCase() || "";
             return row.Amount && parseFloat(row.Amount) > 0 && category !== "deposit" && category !== "deposits" && category !== "transfers";
             })
-          .map((row) => ({
-            postingdate: row["Posting Date"]
-              ? new Date(row["Posting Date"])
-              : new Date(),
-            amount: parseFloat(row.Amount),
-            indicator: row["Credit Debit Indicator"]?.trim() || "",
-            reference: row.Reference?.trim() || row.Description?.trim() || "",
-            category: row.Category?.trim() || "Uncategorized",
-          }));
+          .map(row => {
+            const initialCategory = row.Category?.trim() || "Uncategorized";
+            const smarterCategory = applyRules(row.Description || row.Reference) || initialCategory;
+
+            return {
+              postingdate: row["Posting Date"] ? new Date(row["Posting Date"]) : new Date(),
+              amount: parseFloat(row.Amount),
+              indicator: row["Credit Debit Indicator"]?.trim() || "",
+              reference: row.Reference?.trim() || row.Description?.trim() || "",
+              category: smarterCategory,
+            };
+          });
 
         setParsedData(cleaned);
       },
@@ -54,14 +76,18 @@ export default function CsvUploader() {
     });
   }
 
-  // Filter data based on selected month
-  const filteredData =
-    selectedMonth === "All"
-      ? parsedData
-      : parsedData.filter(
-          (expense) =>
-            expense.postingdate.getMonth() + 1 === Number(selectedMonth)
-        );
+const filteredData = parsedData.filter((expense) => {
+  const matchesMonth =
+    selectedMonth === "All" || expense.postingdate.getMonth() + 1 === Number(selectedMonth);
+
+  const matchesYear =
+    selectedYear === "All" || expense.postingdate.getFullYear() === Number(selectedYear);
+
+  return matchesMonth && matchesYear;
+});
+
+
+
   const totalIncome = filteredData
     .filter(item => item.indicator.toLowerCase() === "credit") 
     .reduce((sum, item) => sum + item.amount, 0);
@@ -113,7 +139,41 @@ export default function CsvUploader() {
           <option value="12">December</option>
         </select>
       </div>
+            {/* Month Filter */}
+      <div
+        style={{
+          margin: "1rem 0",
+          display: "flex",
+          alignItems: "center",
+          gap: "10px",
+        }}
+      >
+        <label htmlFor="year-select" style={{ fontWeight: "600" }}>
+          Filter by Year:
+        </label>
+        <select
+          id="year-select"
+          value={selectedYear}
+          onChange={(e) => setSelectedYear(e.target.value)}
+          style={{
+            padding: "6px 10px",
+            borderRadius: "4px",
+            border: "1px solid #ccc",
+            fontSize: "1rem",
+            cursor: "pointer",
+            backgroundColor: "white",
+            minWidth: "140px",
+          }}
+        >
+          <option value="All">All Years Available</option>
+          <option value="2025">2025</option>
+          <option value="2024">2024</option>
+          <option value="2023">2023</option>
+          <option value="2022">2022</option>
+          <option value="2021">2021</option>
 
+        </select>
+      </div>    
       <div className="uploader">
         {/* Custom-styled file input */}
         <label htmlFor="file-upload" className="custom-upload">
@@ -130,7 +190,11 @@ export default function CsvUploader() {
         {/* Table and Visualizer */}
         {filteredData.length > 0 && (
           <>
-            <ExpenseVisualizer data={filteredData} />
+            <ExpenseVisualizer
+              data={filteredData}
+              selectedMonth={selectedMonth}
+              selectedYear={selectedYear}
+            />
             <table>
               <thead>
                 <tr>

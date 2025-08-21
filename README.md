@@ -5,7 +5,7 @@ Upload your bank CSV, and get instant insights with smart categorization and int
 ---
 
 ## Features
-![Budget Visualizer Screenshot](home-expense-visualizer/upload_menu.png)
+![Budget Visualizer Screenshot](home-expense-visualizer/upload_menu_001.png)
 - 📊 **Pie charts** for spending by category  
 - 🗓️ **Filter by month & year**  
 - 🧠 **Smart categorization** based on transaction descriptions  

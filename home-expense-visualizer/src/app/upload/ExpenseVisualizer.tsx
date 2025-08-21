@@ -17,7 +17,11 @@ interface Props {
   selectedYear: string;  // string or "All"
 }
 
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#845EC2", "#D65DB1", "#6BFFB8", "#FF6F91", "#FF0000" ];
+const COLORS = [
+  "#0088FE", "#00C49F", "#FFBB28", "#FF8042",
+  "#845EC2", "#D65DB1", "#6BFFB8", "#FF6F91", "#FF0000", "#FFA500"
+];
+
 const MONTH_NAMES = [
   "", "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December"
@@ -29,15 +33,38 @@ function getTopCategories(categoryTotals: Record<string, number>, topN = 10) {
   const topCategories = sorted.slice(0, topN);
 
   const result: Record<string, number> = {};
-  topCategories.forEach(([cat, amt]) => {
-    result[cat] = amt;
-  });
-  if (otherTotal > 0) {
-    result["Other"] = otherTotal;
-  }
-
+  topCategories.forEach(([cat, amt]) => { result[cat] = amt; });
+  if (otherTotal > 0) result["Other"] = otherTotal;
   return result;
 }
+
+// Helper function for currency formatting
+const formatCurrency = (amount: number) =>
+  `$${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+interface PieCenterLabelProps {
+  cx: number;
+  cy: number;
+  total: number;
+  xOffset?: number;
+  yOffset?: number;
+}
+
+const PieCenterLabel = ({ cx, cy, total, xOffset = 0, yOffset = 0 }: PieCenterLabelProps) => (
+  <text
+    x="50%"
+    y="45%"
+    textAnchor="middle"
+    dominantBaseline="middle"
+    fontSize={22}
+    fontWeight={600}
+    fill="#333"
+  >
+    {formatCurrency(total)}
+  </text>
+);
+
+
 
 export default function ExpenseVisualizer({ data, selectedMonth, selectedYear }: Props) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
@@ -60,10 +87,13 @@ export default function ExpenseVisualizer({ data, selectedMonth, selectedYear }:
   const monthName = selectedMonth !== "All" ? MONTH_NAMES[Number(selectedMonth)] : "All Months";
   const totalSpent = chartData.reduce((sum, item) => sum + item.value, 0);
 
+  const cx = 200;
+  const cy = 200;
+
   return (
     <div
-      style={{ marginTop: "1.5rem", height: 380, outline: "none", userSelect: "none" }}
-      tabIndex={-1} // prevent focus outline on container
+      style={{ marginTop: "1.5rem", height: 400, outline: "none", userSelect: "none" }}
+      tabIndex={-1}
     >
       <p style={{ fontSize: "1.25rem", fontWeight: 600, marginBottom: "0.75rem" }}>
         Year: {selectedYear !== "All" ? selectedYear : "All Years"} - Month: {monthName}
@@ -84,15 +114,16 @@ export default function ExpenseVisualizer({ data, selectedMonth, selectedYear }:
             data={chartData}
             dataKey="value"
             nameKey="name"
-            cx="50%"
-            cy="50%"
+            cx="50%" 
+            cy="50%" 
             outerRadius={130}
             innerRadius={70}
             paddingAngle={2}
             isAnimationActive={true}
             animationDuration={1200}
-            label
-            tabIndex={-1} // prevent focus on each wedge
+            labelLine={true}
+            label={({ value }) => formatCurrency(value)}
+            tabIndex={-1}
             onMouseEnter={(_, index) => setActiveIndex(index)}
             onMouseLeave={() => setActiveIndex(null)}
           >
@@ -102,34 +133,24 @@ export default function ExpenseVisualizer({ data, selectedMonth, selectedYear }:
                 <Cell
                   key={`cell-${index}`}
                   fill={activeIndex === index ? baseColor : `url(#grad-${index % COLORS.length})`}
-                  style={{ outline: "none" }} // remove rectangle on click
+                  style={{ outline: "none" }}
                 />
               );
             })}
           </Pie>
 
-          <text
-            x="50%"
-            y="50%"
-            textAnchor="middle"
-            dominantBaseline="middle"
-            fontSize={22}
-            fontWeight={600}
-            fill="#333"
-          >
-            ${totalSpent.toFixed(0)}
-          </text>
+          <PieCenterLabel cx={cx} cy={cy} total={totalSpent} yOffset={-2} />
 
-          <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
+          <Tooltip formatter={(value: number) => formatCurrency(value)} />
+
           <Legend 
             verticalAlign="bottom" 
             align="center" 
-            wrapperStyle={{ marginBottom: 20, marginTop:20 }}
+            wrapperStyle={{ marginBottom: 20, marginTop: 60 }}
           />
         </PieChart>
       </ResponsiveContainer>
 
-      {/* global focus prevention */}
       <style jsx global>{`
         svg:focus {
           outline: none !important;

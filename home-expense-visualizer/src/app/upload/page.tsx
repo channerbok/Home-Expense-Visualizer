@@ -4,7 +4,7 @@ import CsvUploader from "./CsvUploader";
 export default function UploadPage() {
   return (
     <main className="upload-page">
-      <h1>Upload Your Bank Statement</h1>
+      <h1>Bank Statement Visualizer</h1>
       <CsvUploader />
       <style jsx>{`
         .upload-page {

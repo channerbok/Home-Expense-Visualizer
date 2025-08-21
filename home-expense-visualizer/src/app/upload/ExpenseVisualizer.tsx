@@ -34,7 +34,7 @@ function getTopCategories(categoryTotals: Record<string, number>, topN = 10) {
 
   const result: Record<string, number> = {};
   topCategories.forEach(([cat, amt]) => { result[cat] = amt; });
-  if (otherTotal > 0) result["Other"] = otherTotal;
+  if (otherTotal > 0) result["Misc."] = otherTotal;
   return result;
 }
 

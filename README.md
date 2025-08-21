@@ -26,7 +26,7 @@ Upload your bank CSV, and get instant insights with smart categorization and int
 ## Quick Start
 
 ```bash
-git clone https://github.com/yourusername/budget-visualizer.git
-cd budget-visualizer
+git clone https://github.com/channerbok/Home-Expense-Visualizer
+cd home-expense-visualizer
 npm install
 npm run dev

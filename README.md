@@ -1,4 +1,4 @@
-# 💰 Budget Visualizer
+# Budget Visualizer
 
 Upload your bank CSV, and get instant insights with smart categorization and interactive charts.  
 
@@ -6,11 +6,11 @@ Upload your bank CSV, and get instant insights with smart categorization and int
 
 ## Features
 ![Budget Visualizer Screenshot](home-expense-visualizer/upload_menu_001.png)
-- 📊 **Pie charts** for spending by category  
-- 🗓️ **Filter by month & year**  
-- 🧠 **Smart categorization** based on transaction descriptions  
-- 💵 **Income & expense summary**  
-- 🖥️ Responsive design for desktop & mobile  
+- **Pie charts** for spending by category  
+- **Filter by month & year**  
+- **Smart categorization** based on transaction descriptions  
+- **Income & expense summary**  
+- Responsive design for desktop & mobile  
 
 ---
 

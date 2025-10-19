@@ -1,6 +1,9 @@
-# Budget Visualizer
+# Finacer Banking App
 
 Upload your bank CSV, and get instant insights with smart categorization and interactive charts.  
+
+
+![Budget Visualizer Screenshot](home-expense-visualizer/home_page.png)
 
 ---
 

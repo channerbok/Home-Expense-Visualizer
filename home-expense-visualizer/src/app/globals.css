@@ -1,31 +1,52 @@
 @import "tailwindcss";
+/* Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap');
 
+/* Animated gradient background (optional, you can remove if using image) */
+.animated-bg {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(270deg, #f3a6c8, #8a2be2, #00cfff); /* softened pink */
+  background-size: 600% 600%;
+  animation: gradientShift 15s ease infinite;
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Optional blur layer */
+.animated-bg::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  backdrop-filter: blur(30px);
+  z-index: 0;
+}
+
+/* Ensure content inside .animated-bg is above blur layer */
+.animated-bg > * {
+  position: relative;
+  z-index: 10;
+}
+
+/* Global root variables */
 :root {
   --background: #ffffff;
   --foreground: #171717;
-}
-.upload-page {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 2rem;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Inter', sans-serif; /* Default font */
+}
+
+/* Force fonts on all text elements */
+html, body, h1, h2, h3, h4, h5, h6, p, span, button, a {
+  font-family: 'Montserrat', sans-serif !important;
 }

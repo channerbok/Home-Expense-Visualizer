@@ -1,10 +1,11 @@
 import React, { useState } from "react";
+import * as XLSX from "xlsx";
 import Papa, { ParseResult } from "papaparse";
 import ExpenseVisualizer from "./ExpenseVisualizer";
 import { categoryRules } from "../rules";
 
 interface ExpenseRow {
-  [key: string]: string; // flexible to handle any column names
+  [key: string]: string; 
 }
 
 interface CleanedExpense {
@@ -21,7 +22,7 @@ const columnMap: Record<string, string[]> = {
   amount: ["Amount", "Instructed Amount", "Transaction Amount"],
   indicator: ["Credit Debit Indicator", "Withdrawal", "Type", "Transaction Type"],
   reference: ["Reference", "Details", "Description"],
-  category: ["Category", "Type Group", "Type"]
+  category: ["Category", "Type Group", "Type"],
 };
 
 // Get the first non-empty value from possible column names
@@ -51,42 +52,83 @@ export default function CsvUploader() {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (results: ParseResult<ExpenseRow>) => {
-        const cleaned: CleanedExpense[] = [];
+    const isExcel = file.name.endsWith(".xlsx") || file.name.endsWith(".xls");
+    const isCSV = file.name.endsWith(".csv");
 
-        results.data.forEach((row, index) => {
-          const amountStr = getColumn(row, columnMap.amount);
-          const amount = amountStr ? parseFloat(amountStr) : NaN;
-          if (isNaN(amount) || amount <= 0) return;
+    const reader = new FileReader();
 
-          const dateStr = getColumn(row, columnMap.postingDate);
-          const postingdate = dateStr ? new Date(dateStr) : new Date();
-          if (isNaN(postingdate.getTime())) return;
+    reader.onload = (e) => {
+      const result = e.target?.result;
+      if (!result) return;
 
-          const indicator = getColumn(row, columnMap.indicator) || "";
-          const reference = getColumn(row, columnMap.reference) || "";
-          const initialCategory = getColumn(row, columnMap.category) || "Uncategorized";
-          const smarterCategory = applyRules(reference) || initialCategory;
-          const categoryNormalized = smarterCategory.trim();
+      try {
+        let csvText = "";
 
-          if (["deposit", "deposits", "transfers"].includes(categoryNormalized.toLowerCase())) return;
+        if (isExcel) {
+          // 🔹 Convert Excel to CSV text
+          const data = new Uint8Array(result as ArrayBuffer);
+          const workbook = XLSX.read(data, { type: "array" });
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          csvText = XLSX.utils.sheet_to_csv(sheet);
+        } else if (isCSV) {
+          // 🔹 Already CSV text
+          csvText = result as string;
+        } else {
+          console.error("Unsupported file type");
+          return;
+        }
 
-          cleaned.push({
-            postingdate,
-            amount,
-            indicator,
-            reference,
-            category: categoryNormalized,
-          });
+        // 🔹 Parse the CSV text
+        Papa.parse<ExpenseRow>(csvText, {
+          header: true,
+          skipEmptyLines: true,
+          complete: (results: ParseResult<ExpenseRow>) => {
+            const cleaned: CleanedExpense[] = [];
+
+            results.data.forEach((row) => {
+              const amountStr = getColumn(row, columnMap.amount);
+              const amount = amountStr ? parseFloat(amountStr) : NaN;
+              if (isNaN(amount) || amount <= 0) return;
+
+              const dateStr = getColumn(row, columnMap.postingDate);
+              const postingdate = dateStr ? new Date(dateStr) : new Date();
+              if (isNaN(postingdate.getTime())) return;
+
+              const indicator = getColumn(row, columnMap.indicator) || "";
+              const reference = getColumn(row, columnMap.reference) || "";
+              const initialCategory = getColumn(row, columnMap.category) || "Uncategorized";
+              const smarterCategory = applyRules(reference) || initialCategory;
+              const categoryNormalized = smarterCategory.trim();
+
+              // Skip deposits/transfers
+              if (["deposit", "deposits", "transfers"].includes(categoryNormalized.toLowerCase())) return;
+
+              cleaned.push({
+                postingdate,
+                amount,
+                indicator,
+                reference,
+                category: categoryNormalized,
+              });
+            });
+
+            setParsedData(cleaned);
+          },
+          error: (error) => console.error("Error parsing CSV", error),
         });
+      } catch (err) {
+        console.error("Error reading file:", err);
+      }
+    };
 
-        setParsedData(cleaned);
-      },
-      error: (error) => console.error("Error parsing CSV", error),
-    });
+    // 🔹 Choose correct reading method
+    if (isExcel) {
+      reader.readAsArrayBuffer(file);
+    } else if (isCSV) {
+      reader.readAsText(file);
+    } else {
+      console.error("Unsupported file type");
+    }
   }
 
   const filteredData = parsedData.filter((expense) => {
@@ -111,7 +153,9 @@ export default function CsvUploader() {
       <div style={{ display: "flex", alignItems: "center", gap: "20px", margin: "1rem 0" }}>
         {/* Month Filter */}
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <label htmlFor="month-select" style={{ fontWeight: "600" }}>Filter by Month:</label>
+          <label htmlFor="month-select" style={{ fontWeight: "600" }}>
+            Filter by Month:
+          </label>
           <select
             id="month-select"
             value={selectedMonth}
@@ -137,7 +181,9 @@ export default function CsvUploader() {
 
         {/* Year Filter */}
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <label htmlFor="year-select" style={{ fontWeight: "600" }}>Filter by Year:</label>
+          <label htmlFor="year-select" style={{ fontWeight: "600" }}>
+            Filter by Year:
+          </label>
           <select
             id="year-select"
             value={selectedYear}
@@ -154,30 +200,52 @@ export default function CsvUploader() {
           >
             <option value="All">All Years Available</option>
             {[2025, 2024, 2023, 2022, 2021].map((year) => (
-              <option key={year} value={year}>{year}</option>
+              <option key={year} value={year}>
+                {year}
+              </option>
             ))}
           </select>
         </div>
       </div>
 
       <div className="uploader">
-        <label htmlFor="file-upload" className="custom-upload">Upload CSV</label>
-        <input id="file-upload" type="file" accept=".csv" onChange={HandleFile} style={{ display: "none" }} />
+        <label htmlFor="file-upload" className="custom-upload">
+          Upload CSV or Excel
+        </label>
+        <input
+          id="file-upload"
+          type="file"
+          accept=".csv, .xlsx, .xls"
+          onChange={HandleFile}
+          style={{ display: "none" }}
+        />
 
         {filteredData.length > 0 && (
           <>
-            <ExpenseVisualizer data={filteredData} selectedMonth={selectedMonth} selectedYear={selectedYear} />
+            <ExpenseVisualizer
+              data={filteredData}
+              selectedMonth={selectedMonth}
+              selectedYear={selectedYear}
+            />
 
             <table>
               <thead>
                 <tr>
-                  <td colSpan={3} style={{ textAlign: "right", fontWeight: "600" }}>Total Income:</td>
-                  <td style={{ textAlign: "left", fontWeight: "600" }}>${totalIncome.toFixed(2)}</td>
+                  <td colSpan={3} style={{ textAlign: "right", fontWeight: "600" }}>
+                    Total Income:
+                  </td>
+                  <td style={{ textAlign: "left", fontWeight: "600" }}>
+                    ${totalIncome.toFixed(2)}
+                  </td>
                   <td></td>
                 </tr>
                 <tr>
-                  <td colSpan={3} style={{ textAlign: "right", fontWeight: "600" }}>Total Spent:</td>
-                  <td style={{ textAlign: "left", fontWeight: "600" }}>${totalSpent.toFixed(2)}</td>
+                  <td colSpan={3} style={{ textAlign: "right", fontWeight: "600" }}>
+                    Total Spent:
+                  </td>
+                  <td style={{ textAlign: "left", fontWeight: "600" }}>
+                    ${totalSpent.toFixed(2)}
+                  </td>
                   <td></td>
                 </tr>
               </thead>
@@ -224,10 +292,23 @@ export default function CsvUploader() {
             cursor: pointer;
             margin-bottom: 1rem;
           }
-          .custom-upload:hover { background-color: #005dc1; }
-          table { border-collapse: collapse; width: 100%; margin-top: 20px; }
-          th, td { border: 1px solid #ccc; padding: 8px 12px; text-align: left; }
-          th { background-color: #f5f5f5; }
+          .custom-upload:hover {
+            background-color: #005dc1;
+          }
+          table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+          }
+          th,
+          td {
+            border: 1px solid #ccc;
+            padding: 8px 12px;
+            text-align: left;
+          }
+          th {
+            background-color: #f5f5f5;
+          }
         `}</style>
       </div>
     </div>
